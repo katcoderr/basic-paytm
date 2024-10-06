@@ -1,7 +1,7 @@
 const express = require("express")
 const router = express.Router()
 const zod = require("zod")
-const { User } = require("../db")
+const { User, Account } = require("../db")
 const jwt = require("jsonwebtoken")
 const { authMiddleware } = require("../middleware")
 require("dotenv").config()
@@ -26,20 +26,26 @@ router.post("/signup", async (req,res)=>{
         username : body.username
     })
 
-    if(userExists._id){
-        return res.json({
+    if(userExists){
+         return res.json({
             msg : "User alreay exists"
         })
     }
 
     const newUser = await User.create({
         username : body.username,
-        firstName : body.firstname,
-        lastName : body.lastname,
+        firstName : body.firstName,
+        lastName : body.lastName,
         password : body.password
     })
 
+    
     const userId = newUser._id
+    
+    await Account.create({
+        userId : userId,
+        balance : Math.round(Math.random() * 10000 + 1)
+    })
     const token = jwt.sign({
         userId : userId,
     }, process.env.JWT_SECRET )
@@ -107,6 +113,7 @@ router.put("/", authMiddleware, async (req,res)=>{
 router.get("/bulk", async (req, res) => {
     const filter = req.query.filter || "";
 
+    
     const users = await User.find({
         $or: [{
             firstName: {
@@ -118,7 +125,8 @@ router.get("/bulk", async (req, res) => {
             }
         }]
     })
-
+ 
+    
     res.json({
         user: users.map(user => ({
             username: user.username,
