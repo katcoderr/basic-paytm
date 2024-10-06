@@ -3,6 +3,7 @@ const router = express.Router()
 const zod = require("zod")
 const { User } = require("../db")
 const jwt = require("jsonwebtoken")
+const { authMiddleware } = require("../middleware")
 require("dotenv").config()
 
 const signupSchema = zod.object({
@@ -82,5 +83,50 @@ router.post("/signin", async (req,res)=>{
     })
 })
 
+const updateUserSchema = zod.object({
+    password : zod.string().optional(),
+    firstName : zod.string().optional(),
+    lastName : zod.string().optional()
+})
+
+router.put("/", authMiddleware, async (req,res)=>{
+    const body = req.body
+    const { success } = updateUserSchema.safeParse(body)
+    if(!success){
+        return res.json({
+            msg : "Error"
+        })
+    }
+    await User.updateOne({_id:req.userId}, body)
+
+    res.json({
+        msg : "Updated Successfully"
+    })
+})
+
+router.get("/bulk", async (req, res) => {
+    const filter = req.query.filter || "";
+
+    const users = await User.find({
+        $or: [{
+            firstName: {
+                "$regex": filter
+            }
+        }, {
+            lastName: {
+                "$regex": filter
+            }
+        }]
+    })
+
+    res.json({
+        user: users.map(user => ({
+            username: user.username,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            _id: user._id
+        }))
+    })
+})
 
 module.exports = router

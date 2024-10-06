@@ -14,7 +14,7 @@ const authMiddleware = (req,res,next)=>{
     const decodedToken = jwt.verify(token, process.env.JWT_SECRET)
 
     if(decodedToken){
-        req.userid = decodedToken.userId
+        req.userId = decodedToken.userId
         next()
     }else{
         return res.status(403).json({})
