@@ -21,7 +21,7 @@ router.post("/signup", async (req,res)=>{
         })
     }
 
-    const userExists = User.findOne({
+    const userExists = await User.findOne({
         username : body.username
     })
 
@@ -45,6 +45,39 @@ router.post("/signup", async (req,res)=>{
 
     res.json({
         msg : "User Created Successfully",
+        token : token
+    })
+})
+
+const signinSchema = zod.object({
+    username : zod.string().email(),
+    password : zod.string()
+})
+
+router.post("/signin", async (req,res)=>{
+    const body = req.body
+    const { success } = signinSchema.safeParse(body)
+    if(!success){
+        return res.json({
+            msg : "Invalid inputs"
+        })
+    }
+
+    const dbUser = await User.findOne({
+        username : body.username
+    })
+
+    if(!dbUser._id){
+        return res.json({
+            msg : "User not found"
+        })
+    }
+
+    const token = jwt.sign({
+        userId : dbUser._id
+    }, process.env.JWT_SECRET)
+
+    res.json({
         token : token
     })
 })
